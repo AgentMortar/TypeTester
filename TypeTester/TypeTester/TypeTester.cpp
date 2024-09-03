@@ -1,144 +1,238 @@
-// TypeTester.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include <iostream>
-#include <fstream>
 #include <vector>
 #include <string>
 #include <cstdlib>
 #include <chrono>
-#include <sstream>
 #include <cmath>
 #include <thread>
 #include <termcolor.hpp>
+#include <list>
+#include <sstream> 
+
 
 using namespace std;
 using namespace std::chrono;
 
-void countdown() {
-    for (int i = 3; i > 0; --i) {
-        cout << i << endl;
-        this_thread::sleep_for(1s);  // Wait for 1 second
-    }
-    cout << termcolor::green << "GO!" << termcolor::reset << endl;
-}
 
-vector<string> populate_vector() {
-    vector<string> sentences = {
-        "The quick brown fox jumps over the lazy dog",
-        "She sells seashells by the seashore",
-        "The rain in Spain stays mainly in the plain",
-        "A watched pot never boils",
-        "Actions speak louder than words",
-        "Better late than never, but never late is better",
-        "The early bird catches the worm",
-        "Practice makes perfect, so keep typing daily",
-        "Rome wasn't built in a day, but it was built",
-        "Every cloud has a silver lining",
-        "You can't judge a book by its cover",
-        "The pen is mightier than the sword",
-        "Where there's smoke, there's fire",
-        "A journey of a thousand miles begins with a single step",
-        "Two wrongs don't make a right",
-        "Honesty is the best policy, always and forever",
-        "The grass is always greener on the other side",
-        "Fortune favors the bold and the brave",
-        "A picture is worth a thousand words",
-        "Don't count your chickens before they hatch"
-    };
-    return sentences;
-}
+class Result;
+class Typetest;
 
-string pick_line(vector<string> sentences) {
-    int sentences_size = sentences.size();
-    srand((unsigned)time(NULL));
-    int random = rand() % sentences_size;
-    return (sentences[random]);
-}
+class Sentence {
+private:
+    string content;
 
-void attempt(string output_line) {
-    double inaccuracies = 0;
+public:
+    Sentence(string content) : content(content) {}
 
-    cout << "Your line is..." << endl << output_line << endl;
-
-    auto start = high_resolution_clock::now();
-
-    string attempt;
-    getline(cin, attempt);
-
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-
-    std::stringstream ss1(output_line);
-    std::string word1;
-    int outputWordCount = 0;
-
-    while (ss1 >> word1) {
-        ++outputWordCount;
+    string getContent() const {
+        return content;
     }
 
-    std::stringstream ss2(attempt);
-    std::string word2;
-    int attemptWordCount = 0;
-
-    while (ss2 >> word2) {
-        ++attemptWordCount;
+    int getLength() const {
+        return content.length();
     }
 
-    cout << endl << "Your attempt:" << endl;
-    int iter = 0;
-    for (; (iter < attempt.length()) && (iter < output_line.length()); iter++) {
-        if (attempt[iter] != output_line[iter]) {
-            inaccuracies++;
-            if (attempt[iter] == ' ') {
-                cout << termcolor::red << "_" << termcolor::reset;
+    int wordCount() const {
+        int count = 0;
+        stringstream ss(content);
+        string word;
+        while (ss >> word) {
+            ++count;
+        }
+        return count;
+    }
+};
+
+class Result {
+public:
+    double timeTaken;
+    double wpm;
+    double accuracy;
+
+    Result(double timeTaken = 0, double wpm = 0, double accuracy = 0)
+        : timeTaken(timeTaken), wpm(wpm), accuracy(accuracy) {}
+
+
+    Result operator+(const Result& other) const {
+        return Result(timeTaken + other.timeTaken,
+            wpm + other.wpm,
+            accuracy + other.accuracy);
+    }
+
+
+    Result operator/(int scalar) const {
+        return Result(timeTaken / scalar,
+            wpm / scalar,
+            accuracy / scalar);
+    }
+
+    void print() const {
+        cout << "Time taken: " << timeTaken << " seconds" << endl;
+        cout << "WPM: " << wpm << endl;
+        cout << "Accuracy: " << accuracy << "%" << endl;
+    }
+};
+
+class Typetest {
+private:
+    list<Result> results;  
+    vector<Sentence> sentences;
+
+public:
+    Typetest() {
+        sentences = populateSentences();
+    }
+
+    void run() {
+        string a;
+        char again_check = 'Y';
+        cout << "Welcome to typetest!" << endl;
+
+        while (again_check != 'N') {
+            Sentence sentence = pickSentence();
+
+            cout << "Press enter key when ready..." << endl;
+            getline(cin, a);
+            countdown();
+
+            Result result = attempt(sentence);
+            results.push_back(result);
+
+            cout << "Would you like to try again? Y/N" << endl;
+            std::cin >> again_check;
+            getline(std::cin, a);  
+        }
+
+        Result averageResult = calculateAverage();
+        cout << "Average stats per attempt:" << endl;
+        averageResult.print();
+
+        cout << "Press Enter to exit..." << endl;
+        getline(cin, a);
+    }
+
+private:
+    vector<Sentence> populateSentences() {
+        vector<Sentence> sentences = {
+            Sentence("The quick brown fox jumps over the lazy dog"),
+            Sentence("She sells seashells by the seashore"),
+            Sentence("The rain in Spain stays mainly in the plain"),
+            Sentence("A watched pot never boils"),
+            Sentence("Actions speak louder than words"),
+            Sentence("Better late than never, but never late is better"),
+            Sentence("The early bird catches the worm"),
+            Sentence("Practice makes perfect, so keep typing daily"),
+            Sentence("Rome wasn't built in a day, but it was built"),
+            Sentence("Every cloud has a silver lining"),
+            Sentence("You can't judge a book by its cover"),
+            Sentence("The pen is mightier than the sword"),
+            Sentence("Where there's smoke, there's fire"),
+            Sentence("A journey of a thousand miles begins with a single step"),
+            Sentence("Two wrongs don't make a right"),
+            Sentence("Honesty is the best policy, always and forever"),
+            Sentence("The grass is always greener on the other side"),
+            Sentence("Fortune favors the bold and the brave"),
+            Sentence("A picture is worth a thousand words"),
+            Sentence("Don't count your chickens before they hatch")
+        };
+        return sentences;
+    }
+
+    Sentence pickSentence() {
+        srand((unsigned)time(NULL));
+        int random = rand() % sentences.size();
+        return sentences[random];
+    }
+
+    void countdown() {
+        for (int i = 3; i > 0; --i) {
+            cout << i << endl;
+            this_thread::sleep_for(1s);
+        }
+        cout << termcolor::green << "GO!" << termcolor::reset << endl;
+    }
+
+    Result attempt(Sentence sentence) {
+        double inaccuracies = 0;
+
+        cout << "Your line is..." << endl << sentence.getContent() << endl;
+
+        auto start = high_resolution_clock::now();
+
+        string attempt;
+        getline(cin, attempt);
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(stop - start);
+
+        int outputWordCount = sentence.wordCount();
+        int attemptWordCount = countWords(attempt);
+
+        cout << endl << "Your attempt:" << endl;
+        int iter = 0;
+        for (; (iter < attempt.length()) && (iter < sentence.getLength()); iter++) {
+            if (attempt[iter] != sentence.getContent()[iter]) {
+                inaccuracies++;
+                if (attempt[iter] == ' ') {
+                    cout << termcolor::red << "_" << termcolor::reset;
+                }
+                else {
+                    cout << termcolor::red << attempt[iter] << termcolor::reset;
+                }
             }
             else {
+                cout << termcolor::green << attempt[iter] << termcolor::reset;
+            }
+        }
+
+        if (attempt.length() > sentence.getLength()) {
+            inaccuracies += attempt.length() - sentence.getLength();
+            for (; iter < attempt.length(); iter++) {
                 cout << termcolor::red << attempt[iter] << termcolor::reset;
             }
         }
-        else {
-            cout << attempt[iter];
+        else if (sentence.getLength() > attempt.length()) {
+            inaccuracies += sentence.getLength() - attempt.length();
+            for (; iter < sentence.getLength(); iter++) {
+                cout << termcolor::red << "_" << termcolor::reset;
+            }
         }
+
+        cout << endl << endl << "Stats:" << endl;
+
+        double timeTaken = duration.count() / 1000.0;
+        double wpm = (attemptWordCount * 60000.0) / duration.count();
+        double accuracy = 100.0 * (static_cast<double>(sentence.getLength() - inaccuracies) / sentence.getLength());
+
+        Result result(timeTaken, wpm, accuracy);
+        result.print();
+
+        return result;
     }
 
-    if (attempt.length() > output_line.length()) {
-        inaccuracies += attempt.length() - output_line.length();
-        for (; iter < attempt.length(); iter++) {
-            cout << termcolor::red << attempt[iter] << termcolor::reset;
+    int countWords(const string& str) const {
+        int count = 0;
+        stringstream ss(str);
+        string word;
+        while (ss >> word) {
+            ++count;
         }
-    }
-    else if (output_line.length() > attempt.length()) {
-        inaccuracies += output_line.length() - attempt.length();
-        for (; iter < output_line.length(); iter++) {
-            cout << termcolor::red << "_" << termcolor::reset;
-        }
+        return count;
     }
 
-    cout << endl << endl << "Stats:" << endl;
+    Result calculateAverage() const {
+        if (results.empty()) return Result();
 
-    std::cout << "Time taken: "
-        << duration.count() / 1000 << "." << duration.count() % 1000 << " seconds" << std::endl;
-
-    std::cout << "WPM: " << (attemptWordCount * 60000.0) / duration.count() << std::endl;
-
-    double accuracy = 100.0 * (static_cast<double>(output_line.length() - inaccuracies) / output_line.length());
-
-    std::cout << "Accuracy: " << accuracy << "%" << std::endl;
-}
+        Result total;
+        for (const auto& result : results) {
+            total = total + result;
+        }
+        return total / results.size();
+    }
+};
 
 int main() {
-    vector<string> sentences = populate_vector();
-    string output_line = pick_line(sentences);
-
-    cout << "Press enter key when ready..." << endl;
-    string a;
-    getline(cin, a);
-    countdown();
-
-    attempt(output_line);
-
-    cout << "Press Enter to exit..." << endl;
-    getline(cin, a);
-    return 1;
+    Typetest typetest;
+    typetest.run();
+    return 0;
 }
