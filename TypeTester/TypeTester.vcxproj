@@ -131,9 +131,7 @@
     <ClCompile Include="TypeTester.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\TypeTester\TypeTester\testing.txt">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-    </Text>
+    <Text Include="testing.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
